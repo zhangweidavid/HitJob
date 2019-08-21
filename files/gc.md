@@ -17,7 +17,7 @@ GC：
 1.      Minor GC: 一般情况下，当新生对象生成，并且在Eden区申请空间失败时触发Minor GC
 2.     Full GC: 对整个堆，包括Yong,Tenured和Perm
              产生的原因主要有： 老年代（Tenured)被写满，持久代被写满，System.gc(),上一次GC之后heap的各个区域分配策略动态变化
-GC  回收期：
+######常见的GC回收器：
    
 
 新生代垃圾回收器：
