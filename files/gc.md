@@ -18,7 +18,7 @@ GC：
 2.     Full GC: 对整个堆，包括Yong,Tenured和Perm
              产生的原因主要有： 老年代（Tenured)被写满，持久代被写满，System.gc(),上一次GC之后heap的各个区域分配策略动态变化
 ######常见的GC回收器：
-   
+   ![avatar](https://github.com/zhangweidavid/HitJob/blob/master/images/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.png)
 
 新生代垃圾回收器：
 1. Serial, ParNew, Parallel Scavenge
