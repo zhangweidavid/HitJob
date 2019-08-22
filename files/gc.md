@@ -19,7 +19,7 @@
    |Minor GC|新生代|当新生对象生成，并且在Eden区申请空间失败时触发Minor GC|
    |Full GC | 整个堆，包括Yong,Tenured和Perm|老年代（Tenured)空间不足，持久代空间不足，System.gc(),上一次GC之后heap的各个区域分配策略动态变化|
 ###### 常见的GC回收器：
-   ![avatar](https://github.com/zhangweidavid/HitJob/blob/master/images/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.png)
+   ![avatar](../images/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.png)
 
 ###### Serial与Serial Old 收集器
 
@@ -50,14 +50,12 @@ CMS收集器是一种以获取最短回收停顿时间为目标的收集器。�
 
 CMS收集器是基于标记清除算法实现的，但是其运行过程相对来说更复杂了，整个过程分成下图4个步骤： 
 
-1. 初始标记
-     在图中可以看出这个步骤是单线程处理的，并且用户线程并未运行，是因为出现了STW。这个过程只是标记一下GC Roots能直接关联到的对象，速度很快。
-2. 并发标记 
-     标记从初始化标记对象可达的存活对象。
-3. 重新标记（remark） 
-    重新标记阶段是为了修正并发标记期间，因用户线程继续运行导致标记产生变动的那一部分对象的标记。看起来有点绕，其实意思就是在并发标记时，用户线程也会产生需要标记的对象，这部分对象不能漏了标记，所以就需要重新标记过程。在图中可以看到，没有用户线程在运行，说明需要STW。
-4. 并发清除（concurrent sweep） 
-    并发清除这个阶段看图也能类比了，有GC线程与用户线程并发运行，GC线程清理掉那些标记的对象，用户线程正常运行。
+|步骤|操作|说明|
+|---- |:------- |:--- |
+ |1|初始标记|在图中可以看出这个步骤是单线程处理的，并且用户线程并未运行，是因为出现了STW。这个过程只是标记一下GC Roots能直接关联到的对象，速度很快。|
+ |2|并发标记 |标记从初始化标记对象可达的存活对象。|
+ |3| 重新标记|重新标记阶段是为了修正并发标记期间，因用户线程继续运行导致标记产生变动的那一部分对象的标记。看起来有点绕，其实意思就是在并发标记时，用户线程也会产生需要标记的对象，这部分对象不能漏了标记，所以就需要重新标记过程。在图中可以看到，没有用户线程在运行，说明需要STW|
+ |4| 并发清除|并发清除这个阶段看图也能类比了，有GC线程与用户线程并发运行，GC线程清理掉那些标记的对象，用户线程正常运行|
 
 第一，第三步的初始标记(Initial Mark)和重新标记(Remark)依然会引发STW
 整体来看，CMS收集器的垃圾回收过程是与用户线程一起并发执行的。 
@@ -66,6 +64,7 @@ CMS收集器是基于标记清除算法实现的，但是其运行过程相对�
    1. 因为是使用并发收集，虽然不会导致用户线程停顿，但是会占用一部分线程而导致应用程序变慢，总的吞吐量会降低。
    2. CMS收集器无法处理浮动垃圾，可能出现“Concurrent Mode Failure”失败而导致另一次Full GC的发生。因为在并发清理阶段，用户线程还在运行，自然就还有新的垃圾不断产生，这部分垃圾出现在标记过程之后，CMS也束手无策，只能等待下次GC时再清理，这一部分垃圾就叫“浮动垃圾”。
    3. CMS是基于标记清除算法实现的，标记清除算法的缺点，就是会产生大量的空间碎片。空间碎片过多时，就会给大对象的空间分配带来麻烦。比如老年代有足够的空间，但是找不到连续的足够大的空间，而不得不触发一次Full GC。为了解决这个问题，CMS收集器提供了-XX:+UseCMSFullGCsBeforeCompaction参数，用于设置执行了多少次不压缩的FGC后来一次碎片整理（默认是0，每次进入FGC时都进行碎片整理）。
+   
    ###### promotion failed和concurrent mode failure
    |参数|说明|
    | :--------   | :-----  |
@@ -81,4 +80,47 @@ CMS收集器是基于标记清除算法实现的，但是其运行过程相对�
 |-XX:+UseCMSCompactAtFullCollection |在进行Full GC时对内存进行压缩|
 |-XX:+UseCMSInitiatingOccupancyOnly |表示cms gc只基于参数CMSInitiatingOccupancyFraction触发|
 |-XX:CMSInitiatingOccupancyFraction=75 |手动指定当老年代已用空间达到75%时，触发老年代回收(默认92%)|
--XX:CMSFullGCsBeforeCompaction=2  |标识着每经过多少次Full GC 触发对内存进行一次压缩，默认是0次
+|-XX:CMSFullGCsBeforeCompaction=2  |标识着每经过多少次Full GC 触发对内存进行一次压缩，默认是0次
+##### G1 Garbage Collector
+![avatar](../images/g1.png)
+heap被划分为一个个相等的不连续的内存区域（regions）,每个region都有一个分代的角色:eden、survivor、old（old还有一种细分 humongous，用来存放大小超过 region 50%以上的巨型对象）
+
+G1里面的Region的概念不同于传统的垃圾回收算法中的分区的概念。G1默认把堆内存分为1024个分区，后续垃圾收集的单位都是以Region为单位的。Region是实现G1算法的基础，每个Region的大小相等，通过-XX:G1HeapRegionSize参数可以设置Region的大小
+###### G1 回收过程
+####### G1 Young GC(STW)
+1.当eden数据满了,则触发g1 YGC 
+2.并行的执行： 
+YGC 将 eden region 中存活的对象拷贝到survivor,或者直接晋升到Old Region中；将Survivor Regin中存活的对象拷贝到新的Survivor或者晋升old region。 
+3.计算下一次YGC eden、Survivor的尺寸
+
+####### G1 Mix GC
+
+|步骤|操作|说明|
+| --------   | :-----  | : --------   | 
+|1|初始标记（initial mark，STW）| G1 GC 对GC Root直接引用对象进行标记|
+|2|并发标记（Concurrent Marking| G1 GC 在整个堆中查找可访问的（存活的）对象。该阶段与应用程序同时运行，可以被 STW 年轻代垃圾回收中断|
+|3|最终标记（Remark，STW） |该阶段是 STW 回收，帮助完成标记周期。G1 GC 清空 SATB 缓冲区，跟踪未被访问的存活对象，并执行引用处理。|
+|4|清除垃圾（Cleanup，STW）| 在这个最后阶段，G1 GC 执行统计和 RSet 净化的 STW 操作。在统计期间，G1 GC 会识别完全空闲的区域和可供进行混合垃圾回收的区域。清理阶段在将空白区域重置并返回到空闲列表时为部分并发。|
+
+
+###### G1与CMS不同点
+
+   |参数|说明|
+   | :--------   | :-----  |
+   |回收算法不同|CMS使用标记清除，G1使用复制算法；内存管理不需要使用空闲列表|
+   |作用区域不同|CMS 只能用于老年代，G1 既可以用于老年代也可以用于新生代|
+   |额外空间要求不同|CMS需要额外空间处理浮动垃圾，G1不需要|
+   
+   ###### G1常用参数
+   |参数|含义|默认值|
+   | :--------   | :-----  | :-----  |
+   |-XX:+UseG1GC|	使用 G1 垃圾收集器||
+   |-XX:MaxGCPauseMillis=200|	设置期望达到的最大GC停顿时间指标（JVM会尽力实现，但不保证达到）||
+   |-XX:InitiatingHeapOccupancyPercent=45|	启动并发GC周期时的堆内存占用百分比. G1之类的垃圾收集器用它来触发并发GC周期,基于整个堆的使用率,而不只是某一代内存的使用比. 值为 0 则表示”一直执行GC循环”.| 默认值为 45|
+   |-XX:NewRatio=n|	新生代与老生代(new/old generation)的大小比例(Ratio)| 默认值为 2|
+   |-XX:SurvivorRatio=n|	eden/survivor 空间大小的比例(Ratio)| 默认值为 8|
+   |-XX:MaxTenuringThreshold=n|	提升年老代的最大临界值(tenuring threshold)| 默认值为 15|
+   |-XX:ParallelGCThreads=n|	设置垃圾收集器在并行阶段使用的线程数|默认值随JVM运行的平台不同而不同|
+   |-XX:ConcGCThreads=n|	并发垃圾收集器使用的线程数量| 默认值随JVM运行的平台不同而不同|
+   |-XX:G1ReservePercent=n|	设置堆内存保留为假天花板的总量,以降低提升失败的可能性| 默认值是 10|
+   |-XX:G1HeapRegionSize=n|	使用G1时Java堆会被分为大小统一的的区(region)。此参数可以指定每个heap区的大小| 默认值将根据 heap size 算出最优解. 最小值为 1Mb, 最大值为 32Mb|
