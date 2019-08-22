@@ -88,10 +88,10 @@ heap被划分为一个个相等的不连续的内存区域（regions）,每个re
 G1里面的Region的概念不同于传统的垃圾回收算法中的分区的概念。G1默认把堆内存分为1024个分区，后续垃圾收集的单位都是以Region为单位的。Region是实现G1算法的基础，每个Region的大小相等，通过-XX:G1HeapRegionSize参数可以设置Region的大小
 ###### G1 回收过程
 ####### G1 Young GC(STW)
-1.当eden数据满了,则触发g1 YGC 
-2.并行的执行： 
+1. 当eden数据满了,则触发g1 YGC 
+2. 并行的执行： 
 YGC 将 eden region 中存活的对象拷贝到survivor,或者直接晋升到Old Region中；将Survivor Regin中存活的对象拷贝到新的Survivor或者晋升old region。 
-3.计算下一次YGC eden、Survivor的尺寸
+3. 计算下一次YGC eden、Survivor的尺寸
 
 ####### G1 Mix GC
 
