@@ -65,3 +65,16 @@ CMS收集器是基于标记清除算法实现的，但是其运行过程相对�
    1. 因为是使用并发收集，虽然不会导致用户线程停顿，但是会占用一部分线程而导致应用程序变慢，总的吞吐量会降低。
    2. CMS收集器无法处理浮动垃圾，可能出现“Concurrent Mode Failure”失败而导致另一次Full GC的发生。因为在并发清理阶段，用户线程还在运行，自然就还有新的垃圾不断产生，这部分垃圾出现在标记过程之后，CMS也束手无策，只能等待下次GC时再清理，这一部分垃圾就叫“浮动垃圾”。
    3. CMS是基于标记清除算法实现的，标记清除算法的缺点，就是会产生大量的空间碎片。空间碎片过多时，就会给大对象的空间分配带来麻烦。比如老年代有足够的空间，但是找不到连续的足够大的空间，而不得不触发一次Full GC。为了解决这个问题，CMS收集器提供了-XX:+UseCMSFullGCsBeforeCompaction参数，用于设置执行了多少次不压缩的FGC后来一次碎片整理（默认是0，每次进入FGC时都进行碎片整理）。
+   ###### concurrent mode failure
+   
+   当新生代对象晋级到老年代时，老年代空间不足就触发 FullGC
+   
+   ###### CMS 调优参数
+   |参数|说明|
+   | --------   | :-----  |
+  |XX:+UseConcMarkSweepGC|使用CMS |
+|-XX:+CMSParallelRemarkEnabled |表示cms的remark阶段采用并行的方式|
+|-XX:+UseCMSCompactAtFullCollection |在进行Full GC时对内存进行压缩|
+|-XX:+UseCMSInitiatingOccupancyOnly |表示cms gc只基于参数CMSInitiatingOccupancyFraction触发|
+|-XX:CMSInitiatingOccupancyFraction=75 |手动指定当老年代已用空间达到75%时，触发老年代回收(默认92%)|
+-XX:CMSFullGCsBeforeCompaction=2  |标识着每经过多少次Full GC 触发对内存进行一次压缩，默认是0次
