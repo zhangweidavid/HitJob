@@ -65,9 +65,12 @@ CMS收集器是基于标记清除算法实现的，但是其运行过程相对�
    1. 因为是使用并发收集，虽然不会导致用户线程停顿，但是会占用一部分线程而导致应用程序变慢，总的吞吐量会降低。
    2. CMS收集器无法处理浮动垃圾，可能出现“Concurrent Mode Failure”失败而导致另一次Full GC的发生。因为在并发清理阶段，用户线程还在运行，自然就还有新的垃圾不断产生，这部分垃圾出现在标记过程之后，CMS也束手无策，只能等待下次GC时再清理，这一部分垃圾就叫“浮动垃圾”。
    3. CMS是基于标记清除算法实现的，标记清除算法的缺点，就是会产生大量的空间碎片。空间碎片过多时，就会给大对象的空间分配带来麻烦。比如老年代有足够的空间，但是找不到连续的足够大的空间，而不得不触发一次Full GC。为了解决这个问题，CMS收集器提供了-XX:+UseCMSFullGCsBeforeCompaction参数，用于设置执行了多少次不压缩的FGC后来一次碎片整理（默认是0，每次进入FGC时都进行碎片整理）。
-   ###### concurrent mode failure
+   ###### promotion failed和concurrent mode failure
+   |参数|说明|
+   | :--------   | :-----  |
+   | promotion failed|该问题是在进行Minor GC时，Survivor Space放不下，对象只能放入老年代，而此时老年代也放不下造成的。（promotion failed时老年代CMS还没有机会进行回收，又放不下转移到老年代的对象，因此会出现下一个问题concurrent mode failure，需要stop-the-wold 降级为GC-Serail Old）。|
+   |concurrent mode failure|该问题是在执行CMS GC的过程中同时业务线程将对象放入老年代，而此时老年代空间不足，或者在做Minor GC的时候，新生代Survivor空间放不下，需要放入老年代，而老年代也放不下而产生的。|
    
-   当新生代对象晋级到老年代时，老年代空间不足就触发 FullGC
    
    ###### CMS 调优参数
    |参数|说明|
