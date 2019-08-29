@@ -69,8 +69,7 @@
 
 B+树
 下图为B+树的结构，B+树是B树的升级版，我们可以观察一下，B树和B+树的区别是什么？
-  
-  ![avatar](../images/b+tree.png)
+![avatar](../images/b+tree.png)
 
 #### B+树和B树的区别是：
 
